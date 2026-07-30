@@ -2,13 +2,14 @@
 import unittest
 import sys
 import os
-import uuid
-import geometry_msgs.msg
-import rospkg
 import pdb
-import rospy
 from colorama import Fore, Back, Style
-import yaml
+import mocha_core.database as database
+import sample_db
+import mocha_core.hash_comm as hc
+import mocha_core.database_utils as du
+import copy
+
 import pprint
 
 ROBOT0_TOPIC0_PRIO0 = b'\x00\x00\x00u\x00\xde'
@@ -25,7 +26,8 @@ class test(unittest.TestCase):
         super().setUp()
 
     def tearDown(self):
-        rospy.sleep(1)
+        import time
+        time.sleep(1)
         super().tearDown()
 
     def test_get_header_list(self):
@@ -75,16 +77,53 @@ class test(unittest.TestCase):
     def test_headers_not_in_local(self):
         dbl = sample_db.get_sample_dbl()
         header_list = dbl.get_header_list()
+        # Test with all headers
         extra_header_1 = du.generate_random_header()
         extra_header_2 = du.generate_random_header()
         header_list.append(extra_header_2)
         header_list.append(extra_header_1)
         new_headers = [extra_header_1, extra_header_2]
         new_headers.sort()
+        # Test without newer
         discover_extra_header = dbl.headers_not_in_local(header_list)
         discover_extra_header.sort()
         self.assertListEqual(discover_extra_header,
                              new_headers)
+        # Test with older header, create a copy of one of the existing headers in the
+        # db. Pick one with the msec field that can accomodate both addition and
+        # substraction
+        test_header = None
+        for header in header_list:
+            h = hc.TsHeader.from_header(header)
+            if h.msecs > 0 and h.msecs < 999:
+                test_header = header
+                break
+        self.assertTrue(test_header is not None)
+        # Modify the timestamp to make it before the current msg
+        h = hc.TsHeader.from_header(test_header)
+        h.msecs -= 1
+        extra_header_3 = h.bindigest()
+        header_list.append(extra_header_3)
+        discover_extra_header_latest = dbl.headers_not_in_local(header_list, newer=True)
+        discover_extra_header_latest.sort()
+        discover_extra_header_all = dbl.headers_not_in_local(header_list)
+        discover_extra_header_all.sort()
+        self.assertListEqual(discover_extra_header_latest, new_headers)
+        diff_header = set(discover_extra_header_all) - set(discover_extra_header)
+        self.assertEqual(diff_header.pop(), extra_header_3)
+        # Modify the timestamp to make it after the current msg
+        h = hc.TsHeader.from_header(test_header)
+        h.msecs += 1
+        extra_header_4 = h.bindigest()
+        header_list.append(extra_header_4)
+        discover_extra_header_latest = dbl.headers_not_in_local(header_list, newer=True)
+        new_headers.append(extra_header_4) # The new header should show in the list
+        new_headers.sort()
+        discover_extra_header_latest.sort()
+        self.assertListEqual(new_headers, discover_extra_header_latest)
+        # Finally, getting all the headers should not filter them out
+        discover_extra_header = dbl.headers_not_in_local(header_list)
+        self.assertTrue(len(discover_extra_header) == 4)
 
     def test_find_header(self):
         dbl = sample_db.get_sample_dbl()
@@ -103,33 +142,6 @@ class test(unittest.TestCase):
         self.assertAlmostEqual(dbm.ts, ts)
         self.assertEqual(dbm.data, data)
 
-
 if __name__ == '__main__':
-    # Get the directory path and import all the required modules to test
-    rospack = rospkg.RosPack()
-    ddb_path = rospack.get_path('mocha_core')
-    scripts_path = os.path.join(ddb_path, "scripts/core")
-    sys.path.append(scripts_path)
-    import database
-    import sample_db
-    import hash_comm as hc
-    import database_utils as du
-
-    dbl = sample_db.get_sample_dbl()
-
-    # Set the node name
-    rospy.init_node('test_synchronize_utils', anonymous=False)
-
-    # Get the default path from the ddb_path
-    robot_configs_default = os.path.join(ddb_path,
-                                         "config/testConfigs/robot_configs.yaml")
-    # Get the path to the robot config file from the ros parameter robot_configs
-    robot_configs = rospy.get_param("robot_configs",
-                                    robot_configs_default)
-
-    # Get the yaml dictionary objects
-    with open(robot_configs, "r") as f:
-        robot_configs = yaml.load(f, Loader=yaml.FullLoader)
-
     # Run test cases!
     unittest.main()

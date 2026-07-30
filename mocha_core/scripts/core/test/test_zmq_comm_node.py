@@ -13,46 +13,95 @@ import os
 import random
 import string
 import sys
+import time
 import unittest
 import yaml
-import rospkg
 import pdb
-import rospy
+import rclpy
+import rclpy.logging
+from rclpy.logging import LoggingSeverity
+from rclpy.executors import SingleThreadedExecutor
+from rclpy.node import Node
+import threading
 from colorama import Fore, Style
+import mocha_core.zmq_comm_node as zmq_comm_node
+
+class Comm_node_test(Node):
+    def __init__(self):
+        super().__init__("comm_node_test")
 
 
 class Test(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        # Load configurations at the class level
+        current_dir = os.path.dirname(os.path.abspath(__file__))
+        ddb_path = os.path.join(current_dir, "..")
+
+        # Load robot configs
+        robot_configs_path = os.path.join(ddb_path, "config/testConfigs/robot_configs.yaml")
+        with open(robot_configs_path, "r") as f:
+            cls.robot_configs = yaml.load(f, Loader=yaml.FullLoader)
+
+
     def setUp(self):
         test_name = self._testMethodName
         print("\n", Fore.RED, 20*"=", test_name, 20*"=", Style.RESET_ALL)
+        # Create a mock node to run the tests
+        rclpy.init()
+        self.comm_node_test = Comm_node_test()
+        self.executor = SingleThreadedExecutor()
+        self.executor.add_node(self.comm_node_test)
+        executor_thread = threading.Thread(target=self.executor.spin, daemon=True)
+        executor_thread.start()
         super().setUp()
 
     def tearDown(self):
-        rospy.sleep(1)
+        time.sleep(1)
+        self.executor.shutdown()
+        self.comm_node_test.destroy_node()
+        rclpy.shutdown()
         super().tearDown()
 
     def test_simple_connection(self):
-        self.answer = None
+        self.answer_cb_gs_client = None
+        self.answer_cb_ch_client = None
+        logger = self.comm_node_test.get_logger()
+        logger.set_level(LoggingSeverity.DEBUG)
 
-        def cb_groundstation(value):
-            rospy.logdebug("cb_groundstation")
-            self.answer = value
+        def cb_groundstation_client(value):
+            logger.debug(f"cb groundstation client")
+            self.answer_cb_gs_client = value
 
-        def cb_charon(value):
+        def cb_groundstation_server(value):
+            # This function is called upon reception of a message by the base
+            # station
+            logger.debug("cb groundstation server")
+            to_append = b"GSSERVER"
+            return value + to_append
+
+        def cb_charon_client(value):
+            logger.debug(f"cb charon client")
+            self.answer_cb_ch_client = value
+
+        def cb_charon_server(value):
             # This function is called upon reception of a message by charon.
             # The return value is transmitted as answer to the original
-            # message.
-            rospy.logdebug(f"cb_charon: {value}")
-            return value
+            # message + b"CHARON"
+            logger.debug(f"cb charon server")
+            to_append = b"CHARONSERVER"
+            return value + to_append
 
         # Create the two robots
         node_groundstation = zmq_comm_node.Comm_node(
-            "basestation", "charon", robot_configs,
-            cb_groundstation, cb_groundstation, 2
+            "basestation", "charon", self.robot_configs,
+            cb_groundstation_client, cb_groundstation_server,
+            2, self.comm_node_test
         )
         node_charon = zmq_comm_node.Comm_node(
-            "charon", "basestation", robot_configs,
-            cb_charon, cb_charon, 2
+            "charon", "basestation", self.robot_configs,
+            cb_charon_client, cb_charon_server,
+            2, self.comm_node_test
         )
 
         # Generate random message
@@ -63,37 +112,26 @@ class Test(unittest.TestCase):
 
         # Send message from node_groundstation to robot 2
         node_groundstation.connect_send_message(random_msg)
+        node_charon.connect_send_message(random_msg)
+        self.assertEqual(
+            "127.0.0.1",
+            zmq_comm_node.Comm_node.get_robot_address(
+                self.robot_configs["charon"],
+                zmq_comm_node.Transport.WIFI
+            )
+        )
 
-        # node_charon.connect_send_message(random_msg)
+        wifi_msg = b"WIFI" + random_msg
+        node_groundstation.connect_send_message(wifi_msg, "wifi")
 
         # Terminate robots and test assertion
         node_groundstation.terminate()
         node_charon.terminate()
-        self.assertEqual(random_msg, self.answer, "Sent %s" % random_msg)
-
+        self.assertEqual(wifi_msg + b"CHARONSERVER", self.answer_cb_gs_client,
+                         "Sent %s" % wifi_msg)
+        self.assertEqual(random_msg + b"GSSERVER", self.answer_cb_ch_client,
+                         "Sent %s" % random_msg)
 
 if __name__ == "__main__":
-    # Get the directory path and import all the required modules to test
-    rospack = rospkg.RosPack()
-    ddb_path = rospack.get_path("mocha_core")
-    scripts_path = os.path.join(ddb_path, "scripts/core")
-    sys.path.append(scripts_path)
-    import zmq_comm_node
-
-    # Create a ROS node using during the test
-    rospy.init_node("test_zmq_comm_node",
-                    log_level=rospy.DEBUG, anonymous=False)
-
-    # Get the default path from the ddb_path
-    robot_configs_default = os.path.join(ddb_path,
-                                         "config/testConfigs/robot_configs.yaml")
-    # Get the path to the robot config file from the ros parameter robot_configs
-    robot_configs = rospy.get_param("robot_configs",
-                                    robot_configs_default)
-
-    # Get the yaml dictionary objects
-    with open(robot_configs, "r") as f:
-        robot_configs = yaml.load(f, Loader=yaml.FullLoader)
-
     # Run test cases!
     unittest.main()
