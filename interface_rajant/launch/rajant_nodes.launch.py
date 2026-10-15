@@ -10,6 +10,9 @@ from launch_ros.substitutions import FindPackageShare
 
 def launch_setup(context, *args, **kwargs):
     from ament_index_python.packages import get_package_share_directory
+    respawn = LaunchConfiguration('respawn')
+    # Jazzy requires a numeric respawn_delay; resolve it at launch execution.
+    respawn_delay = float(LaunchConfiguration('respawn_delay').perform(context))
     robot_name = LaunchConfiguration('robot_name')
     robot_configs = LaunchConfiguration('robot_configs')
     radio_configs = LaunchConfiguration('radio_configs')
@@ -53,6 +56,8 @@ def launch_setup(context, *args, **kwargs):
             executable='rajant_peer_rssi.py',
             name='rajant_peer_rssi',
             output='screen',
+            respawn=respawn,
+            respawn_delay=respawn_delay,
             parameters=[{
                 'robot_name': robot_name,
                 'robot_configs': robot_configs,
@@ -67,6 +72,8 @@ def launch_setup(context, *args, **kwargs):
             executable='rajant_query.py',
             name='rajant_query',
             output='screen',
+            respawn=respawn,
+            respawn_delay=respawn_delay,
             parameters=[{
                 'robot_name': robot_name,
                 'robot_configs': robot_configs,
@@ -81,6 +88,8 @@ def launch_setup(context, *args, **kwargs):
             executable='rajant_parser.py',
             name='rajant_parser',
             output='screen',
+            respawn=respawn,
+            respawn_delay=respawn_delay,
             parameters=[{
                 'robot_name': robot_name,
                 'robot_configs': robot_configs,
@@ -135,7 +144,18 @@ def generate_launch_description():
         description='Minimum seconds between WiFi backup sync attempts per peer'
     )
 
+    respawn_arg = DeclareLaunchArgument(
+        'respawn', default_value='false',
+        description='Restart nodes after they exit while launch is running'
+    )
+    respawn_delay_arg = DeclareLaunchArgument(
+        'respawn_delay', default_value='5.0',
+        description='Seconds to wait before restarting a node'
+    )
+
     return LaunchDescription([
+        respawn_arg,
+        respawn_delay_arg,
         robot_name_arg,
         robot_configs_arg,
         radio_configs_arg,

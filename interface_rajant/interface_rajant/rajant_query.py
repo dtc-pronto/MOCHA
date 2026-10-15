@@ -19,6 +19,8 @@ from rclpy.node import Node
 from std_msgs.msg import String
 from ament_index_python.packages import get_package_share_directory
 
+from interface_rajant.parent_process import popen_with_parent_lifetime
+
 def randomNumber(stringLength=4):
     """Generate a random string of fixed length """
     number = random.randint(1000, 9999)
@@ -152,7 +154,7 @@ class RajantQueryNode(Node):
 
     def start_java_process(self):
         """Start or restart the Java process"""
-        self.p = subprocess.Popen(['java',
+        self.p = popen_with_parent_lifetime(['java',
                    '-jar',
                    self.java_bin,
                    self.target_ip], stdout=subprocess.PIPE, close_fds=ON_POSIX)
