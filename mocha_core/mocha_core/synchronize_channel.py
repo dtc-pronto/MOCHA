@@ -431,7 +431,7 @@ class Channel():
 
     def trigger_sync(self, transport=zmq_comm_node.Transport.RAJANT):
         if self.sync.get_state():
-            self.logger.warn(f"{self.this_robot} <- {self.target_robot}: Channel busy")
+            self.logger.debug(f"{self.this_robot} <- {self.target_robot}: Channel busy")
         else:
             self.comm_node.set_transport(transport)
             self.sync.set()

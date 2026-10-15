@@ -2,7 +2,7 @@
 
 from launch import LaunchDescription
 from launch.actions import DeclareLaunchArgument, OpaqueFunction
-from launch.substitutions import LaunchConfiguration, PathJoinSubstitution
+from launch.substitutions import EnvironmentVariable, LaunchConfiguration, PathJoinSubstitution
 from launch_ros.actions import Node
 from launch_ros.parameter_descriptions import ParameterValue
 from launch_ros.substitutions import FindPackageShare
@@ -68,6 +68,11 @@ def generate_launch_description():
         description='Seconds without RSSI before Rajant is considered stale'
     )
 
+    log_level_arg = DeclareLaunchArgument(
+        'log_level', default_value=EnvironmentVariable('COMMON_LOG_LEVEL', default_value='info'),
+        description='ROS log level for common services'
+    )
+
     respawn_arg = DeclareLaunchArgument(
         'respawn', default_value='false',
         description='Restart nodes after they exit while launch is running'
@@ -78,6 +83,7 @@ def generate_launch_description():
     )
 
     return LaunchDescription([
+        log_level_arg,
         respawn_arg,
         respawn_delay_arg,
         sigterm_timeout_arg,
@@ -112,6 +118,7 @@ def launch_setup(context, *args, **kwargs):
         executable='mocha.py',
         name='mocha',
         output='screen',
+        arguments=['--ros-args', '--log-level', LaunchConfiguration('log_level')],
         respawn=respawn,
         respawn_delay=respawn_delay,
         parameters=[{
@@ -136,6 +143,7 @@ def launch_setup(context, *args, **kwargs):
         executable='translator.py',
         name='translator',
         output='screen',
+        arguments=['--ros-args', '--log-level', LaunchConfiguration('log_level')],
         respawn=respawn,
         respawn_delay=respawn_delay,
         parameters=[{
@@ -150,6 +158,7 @@ def launch_setup(context, *args, **kwargs):
         executable='topic_publisher.py',
         name='topic_publisher',
         output='screen',
+        arguments=['--ros-args', '--log-level', LaunchConfiguration('log_level')],
         respawn=respawn,
         respawn_delay=respawn_delay,
         parameters=[{

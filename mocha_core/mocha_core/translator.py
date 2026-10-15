@@ -55,7 +55,7 @@ class Translator():
             callback_group=callback_group,
             qos_profile=QOS_PROFILE
         )
-        self.logger.info(f"Translator created for {self.topic_name}")
+        self.logger.debug(f"Translator created for {self.topic_name}")
 
     def translator_cb(self, data):
         msg = data

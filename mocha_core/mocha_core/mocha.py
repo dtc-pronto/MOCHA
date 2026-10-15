@@ -229,7 +229,7 @@ class Mocha(Node):
             self.trigger_wifi_if_ready(comm_node, f"Rajant RSSI {rssi} below threshold")
 
     def trigger_channel(self, channel, transport, reason):
-        self.logger.info(
+        self.logger.debug(
             f"{self.this_robot} <- {channel.target_robot}: " +
             f"Triggering comms via {transport.value} ({reason})"
         )

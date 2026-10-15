@@ -59,7 +59,7 @@ class TopicPublisher:
 
 
     def run(self):
-        self.logger.info(f"{self.robot_name}{self.topic_name} - Topic Publisher - Started")
+        self.logger.debug(f"{self.robot_name}{self.topic_name} - Topic Publisher - Started")
         self.is_shutdown.clear()
         while not self.is_shutdown.is_set():
             # Try to acquire the mutex and loop back if we failed
@@ -183,6 +183,8 @@ class TopicPublisherNode(Node):
                                     self.msg_types, obj, self)
                 self.list_of_threads[robot_id][topic_id] = tp
                 tp.th.start()
+        publisher_count = sum(len(topics) for topics in self.list_of_threads.values())
+        self.logger.info(f"{self.this_robot} - Topic publishers ready: {publisher_count}")
         sub = self.create_subscription(DatabaseCB, "/mocha/database_cb",
                                        self.msgheader_callback, 10,
                                        callback_group=self.callback_group)
