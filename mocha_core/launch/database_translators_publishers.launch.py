@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 from launch import LaunchDescription
-from launch.actions import DeclareLaunchArgument
+from launch.actions import DeclareLaunchArgument, OpaqueFunction
 from launch.substitutions import LaunchConfiguration, PathJoinSubstitution
 from launch_ros.actions import Node
 from launch_ros.parameter_descriptions import ParameterValue
@@ -68,7 +68,35 @@ def generate_launch_description():
         description='Seconds without RSSI before Rajant is considered stale'
     )
 
-    # Get launch configurations
+    respawn_arg = DeclareLaunchArgument(
+        'respawn', default_value='false',
+        description='Restart nodes after they exit while launch is running'
+    )
+    respawn_delay_arg = DeclareLaunchArgument(
+        'respawn_delay', default_value='5.0',
+        description='Seconds to wait before restarting a node'
+    )
+
+    return LaunchDescription([
+        respawn_arg,
+        respawn_delay_arg,
+        sigterm_timeout_arg,
+        robot_name_arg,
+        robot_configs_arg,
+        topic_configs_arg,
+        radio_configs_arg,
+        wifi_fallback_enabled_arg,
+        wifi_backup_always_on_arg,
+        wifi_backup_period_arg,
+        rajant_signal_timeout_arg,
+        OpaqueFunction(function=launch_setup)
+    ])
+
+
+def launch_setup(context, *args, **kwargs):
+    respawn = LaunchConfiguration('respawn')
+    # Jazzy requires a numeric respawn_delay; resolve it at launch execution.
+    respawn_delay = float(LaunchConfiguration('respawn_delay').perform(context))
     robot_name = LaunchConfiguration('robot_name')
     robot_configs = LaunchConfiguration('robot_configs')
     topic_configs = LaunchConfiguration('topic_configs')
@@ -84,6 +112,8 @@ def generate_launch_description():
         executable='mocha.py',
         name='mocha',
         output='screen',
+        respawn=respawn,
+        respawn_delay=respawn_delay,
         parameters=[{
             'robot_name': robot_name,
             'robot_configs': robot_configs,
@@ -106,6 +136,8 @@ def generate_launch_description():
         executable='translator.py',
         name='translator',
         output='screen',
+        respawn=respawn,
+        respawn_delay=respawn_delay,
         parameters=[{
             'robot_name': robot_name,
             'robot_configs': robot_configs,
@@ -118,6 +150,8 @@ def generate_launch_description():
         executable='topic_publisher.py',
         name='topic_publisher',
         output='screen',
+        respawn=respawn,
+        respawn_delay=respawn_delay,
         parameters=[{
             'robot_name': robot_name,
             'robot_configs': robot_configs,
@@ -125,17 +159,4 @@ def generate_launch_description():
         }]
     )
 
-    return LaunchDescription([
-        sigterm_timeout_arg,
-        robot_name_arg,
-        robot_configs_arg,
-        topic_configs_arg,
-        radio_configs_arg,
-        wifi_fallback_enabled_arg,
-        wifi_backup_always_on_arg,
-        wifi_backup_period_arg,
-        rajant_signal_timeout_arg,
-        mocha_node,
-        translator_node,
-        topic_publisher_node
-    ])
+    return [mocha_node, translator_node, topic_publisher_node]

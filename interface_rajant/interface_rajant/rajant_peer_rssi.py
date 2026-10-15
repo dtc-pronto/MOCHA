@@ -14,6 +14,8 @@ from rclpy.node import Node
 import std_msgs.msg
 import yaml
 
+from interface_rajant.parent_process import popen_with_parent_lifetime
+
 ON_POSIX = 'posix' in sys.builtin_module_names
 
 
@@ -318,14 +320,12 @@ class RajantPeerRSSI(Node):
         self.get_logger().info(
             f'{self.this_robot} - Rajant Peer RSSI'
             f' - Starting Java Process for IP {self.target_ip}')
-        # Run process in its own separate process group so it does not get
-        # SIGINT. We will handle that ourselves
-        popen_kwargs = {}
-        popen_kwargs['preexec_fn'] = os.setpgrp
-        self.java_process = subprocess.Popen(
+        # Keep Java in the launch process group and kill it if this node exits,
+        # including abrupt node crashes followed by ROS launch respawn.
+        self.java_process = popen_with_parent_lifetime(
             ['java', '-jar', self.bcapi_jar_file, self.target_ip],
             stdout=subprocess.PIPE, close_fds=ON_POSIX,
-            text=True, **popen_kwargs)
+            text=True)
         self.process_queue = queue.Queue()
         self.enqueue_thread = threading.Thread(target=self.enqueue_output, args=())
         self.enqueue_thread.start()

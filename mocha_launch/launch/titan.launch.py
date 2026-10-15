@@ -63,7 +63,18 @@ def generate_launch_description():
         description='Seconds without RSSI before Rajant is considered stale'
     )
 
+    respawn_arg = DeclareLaunchArgument(
+        'respawn', default_value='false',
+        description='Restart nodes after they exit while launch is running'
+    )
+    respawn_delay_arg = DeclareLaunchArgument(
+        'respawn_delay', default_value='5.0',
+        description='Seconds to wait before restarting a node'
+    )
+
     # Get launch configurations
+    respawn = LaunchConfiguration('respawn')
+    respawn_delay = LaunchConfiguration('respawn_delay')
     robot_name = LaunchConfiguration('robot_name')
     robot_configs = LaunchConfiguration('robot_configs')
     topic_configs = LaunchConfiguration('topic_configs')
@@ -83,6 +94,8 @@ def generate_launch_description():
             ])
         ]),
         launch_arguments={
+            'respawn': respawn,
+            'respawn_delay': respawn_delay,
             'robot_name': robot_name,
             'robot_configs': robot_configs,
             'topic_configs': topic_configs,
@@ -104,6 +117,8 @@ def generate_launch_description():
             ])
         ]),
         launch_arguments={
+            'respawn': respawn,
+            'respawn_delay': respawn_delay,
             'robot_name': robot_name,
             'robot_configs': robot_configs,
             'topic_configs': topic_configs,
@@ -113,6 +128,8 @@ def generate_launch_description():
     )
 
     return LaunchDescription([
+        respawn_arg,
+        respawn_delay_arg,
         robot_name_arg,
         robot_configs_arg,
         topic_configs_arg,
