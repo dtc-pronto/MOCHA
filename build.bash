@@ -1,3 +1,3 @@
 #!/bin/bash
 
-docker build --rm -t "dtc-platform-${HOSTNAME}:mocha" .
+docker build --rm -t "dtc-platform-$(hostname):mocha" .

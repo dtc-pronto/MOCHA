@@ -14,4 +14,4 @@ docker run --rm -it \
     -e RADIO_CONFIGS="${RADIO_CONFIGS:-/home/dtc/config/radio_configs.yaml}" \
     --name "dtc-platform-$(hostname)-mocha" \
     -v "$(pwd)/../config:/home/dtc/config:ro" \
-    "dtc-${HOSTNAME}:mocha"
+    "dtc-platform-$(hostname):mocha"
