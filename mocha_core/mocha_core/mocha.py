@@ -2,6 +2,7 @@
 import os
 import random
 import signal
+import socket
 import sys
 import time
 import pdb
@@ -237,20 +238,33 @@ class Mocha(Node):
 
     def trigger_wifi_if_ready(self, channel, reason):
         target_config = self.robot_configs[channel.target_robot]
-        if not target_config.get("wifi-IP-address"):
-            if channel.target_robot not in self.missing_wifi_warned:
-                self.missing_wifi_warned.add(channel.target_robot)
-                self.logger.warning(
-                    f"{self.this_robot} <- {channel.target_robot}: " +
-                    "WiFi fallback requested, but wifi-IP-address is not configured"
-                )
-            return
         state = self.link_state[channel.target_robot]
         now = time.monotonic()
         if now - state["last_wifi_sync"] < self.wifi_backup_period:
             return
         state["last_wifi_sync"] = now
-        self.trigger_channel(channel, Transport.WIFI, reason)
+        # Prefer WiFi for weak/stale RSSI, but only if the peer's actual
+        # MOCHA port is reachable. Keep a working Rajant path as a fallback.
+        port = (int(target_config["base-port"]) +
+                target_config["clients"].index(self.this_robot))
+        for transport, address_key in (
+                (Transport.WIFI, "wifi-IP-address"),
+                (Transport.RAJANT, "IP-address")):
+            address = target_config.get(address_key)
+            if not address:
+                continue
+            try:
+                with socket.create_connection((address, port), timeout=0.2):
+                    pass
+            except OSError:
+                continue
+            self.trigger_channel(
+                channel, transport,
+                f"{reason}; {transport.value} TCP reachable")
+            return
+        self.logger.warning(
+            f"{self.this_robot} <- {channel.target_robot}: "
+            "Neither WiFi nor Rajant MOCHA port is reachable; retrying later")
 
     def wifi_backup_timer_cb(self):
         now = time.monotonic()

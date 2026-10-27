@@ -64,6 +64,12 @@ def line_parser(line_bytes):
         mac_bytes = bytes(mac_str, 'raw_unicode_escape')
         mac_decoded = ":".join(["%02x" % c for c in mac_bytes[1:-2]])
         line_str = line_str[:separator] + mac_decoded + "\n"
+    # Byte-valued radio fields can decode to control characters (for example
+    # \\b -> backspace). YAML rejects those literal characters. Preserve them
+    # as escapes, after decoding MAC bytes so MAC matching remains unchanged.
+    line_str = re.sub(
+        r'[\x00-\x08\x0b\x0c\x0e-\x1f\x7f-\x84\x86-\x9f]',
+        lambda match: '\\x%02x' % ord(match.group()), line_str)
     return line_str
 
 
@@ -220,6 +226,10 @@ class RajantQueryNode(Node):
                 if len(self.accumulated_answ) > 500000:
                     self.get_logger().error(f"{self.robot_name}: Buffer too large, discarding YAML")
                     self.accumulated_answ = ""
+            except yaml.YAMLError as exc:
+                self.get_logger().warning(
+                    f"{self.robot_name}: Discarding malformed Rajant update: {exc}")
+                self.accumulated_answ = ""
 
 
 def main(args=None):
