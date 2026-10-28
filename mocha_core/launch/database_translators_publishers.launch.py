@@ -14,6 +14,7 @@ def generate_launch_description():
     """
 
     # Declare launch arguments
+    log_level_arg = DeclareLaunchArgument('log_level', default_value='info')
     robot_name_arg = DeclareLaunchArgument(
         'robot_name',
         default_value='charon',
@@ -119,8 +120,6 @@ def launch_setup(context, *args, **kwargs):
         name='mocha',
         output='screen',
         arguments=['--ros-args', '--log-level', LaunchConfiguration('log_level')],
-        respawn=respawn,
-        respawn_delay=respawn_delay,
         parameters=[{
             'robot_name': robot_name,
             'robot_configs': robot_configs,
@@ -144,8 +143,6 @@ def launch_setup(context, *args, **kwargs):
         name='translator',
         output='screen',
         arguments=['--ros-args', '--log-level', LaunchConfiguration('log_level')],
-        respawn=respawn,
-        respawn_delay=respawn_delay,
         parameters=[{
             'robot_name': robot_name,
             'robot_configs': robot_configs,
@@ -159,8 +156,6 @@ def launch_setup(context, *args, **kwargs):
         name='topic_publisher',
         output='screen',
         arguments=['--ros-args', '--log-level', LaunchConfiguration('log_level')],
-        respawn=respawn,
-        respawn_delay=respawn_delay,
         parameters=[{
             'robot_name': robot_name,
             'robot_configs': robot_configs,
@@ -168,4 +163,18 @@ def launch_setup(context, *args, **kwargs):
         }]
     )
 
-    return [mocha_node, translator_node, topic_publisher_node]
+    return LaunchDescription([
+        log_level_arg,
+        sigterm_timeout_arg,
+        robot_name_arg,
+        robot_configs_arg,
+        topic_configs_arg,
+        radio_configs_arg,
+        wifi_fallback_enabled_arg,
+        wifi_backup_always_on_arg,
+        wifi_backup_period_arg,
+        rajant_signal_timeout_arg,
+        mocha_node,
+        translator_node,
+        topic_publisher_node
+    ])

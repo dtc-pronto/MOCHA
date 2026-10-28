@@ -1,0 +1,3 @@
+[submodule "dtc-msgs"]
+	path = dtc-msgs
+	url = git@github.com:dtc-pronto/dtc-msgs.git

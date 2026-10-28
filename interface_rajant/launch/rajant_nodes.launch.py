@@ -57,8 +57,6 @@ def launch_setup(context, *args, **kwargs):
             name='rajant_peer_rssi',
             output='screen',
             arguments=['--ros-args', '--log-level', LaunchConfiguration('log_level')],
-            respawn=respawn,
-            respawn_delay=respawn_delay,
             parameters=[{
                 'robot_name': robot_name,
                 'robot_configs': robot_configs,
@@ -74,8 +72,6 @@ def launch_setup(context, *args, **kwargs):
             name='rajant_query',
             output='screen',
             arguments=['--ros-args', '--log-level', LaunchConfiguration('log_level')],
-            respawn=respawn,
-            respawn_delay=respawn_delay,
             parameters=[{
                 'robot_name': robot_name,
                 'robot_configs': robot_configs,
@@ -91,8 +87,6 @@ def launch_setup(context, *args, **kwargs):
             name='rajant_parser',
             output='screen',
             arguments=['--ros-args', '--log-level', LaunchConfiguration('log_level')],
-            respawn=respawn,
-            respawn_delay=respawn_delay,
             parameters=[{
                 'robot_name': robot_name,
                 'robot_configs': robot_configs,
@@ -108,6 +102,7 @@ def launch_setup(context, *args, **kwargs):
 def generate_launch_description():
     """Launch Rajant interface nodes dynamically."""
     # Declare launch arguments
+    log_level_arg = DeclareLaunchArgument('log_level', default_value='info')
     robot_name_arg = DeclareLaunchArgument(
         'robot_name',
         default_value='charon',
@@ -163,8 +158,6 @@ def generate_launch_description():
 
     return LaunchDescription([
         log_level_arg,
-        respawn_arg,
-        respawn_delay_arg,
         robot_name_arg,
         robot_configs_arg,
         radio_configs_arg,

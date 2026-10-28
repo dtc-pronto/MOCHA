@@ -10,6 +10,7 @@ from launch_ros.substitutions import FindPackageShare
 def generate_launch_description():
     """Launch basestation robot with database, translators, publishers, and Rajant interface."""
     # Declare launch arguments
+    log_level_arg = DeclareLaunchArgument('log_level', default_value='info')
     robot_name_arg = DeclareLaunchArgument(
         'robot_name',
         default_value='basestation',
@@ -85,8 +86,7 @@ def generate_launch_description():
             ])
         ]),
         launch_arguments={
-            'respawn': respawn,
-            'respawn_delay': respawn_delay,
+            'log_level': LaunchConfiguration('log_level'),
             'robot_name': robot_name,
             'robot_configs': robot_configs,
             'topic_configs': topic_configs,
@@ -108,8 +108,7 @@ def generate_launch_description():
             ])
         ]),
         launch_arguments={
-            'respawn': respawn,
-            'respawn_delay': respawn_delay,
+            'log_level': LaunchConfiguration('log_level'),
             'robot_name': robot_name,
             'robot_configs': robot_configs,
             'topic_configs': topic_configs,
@@ -119,8 +118,7 @@ def generate_launch_description():
     )
 
     return LaunchDescription([
-        respawn_arg,
-        respawn_delay_arg,
+        log_level_arg,
         robot_name_arg,
         robot_configs_arg,
         topic_configs_arg,
