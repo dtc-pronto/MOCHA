@@ -2,7 +2,7 @@
 
 from launch import LaunchDescription
 from launch.actions import DeclareLaunchArgument, OpaqueFunction
-from launch.substitutions import EnvironmentVariable, LaunchConfiguration, PathJoinSubstitution
+from launch.substitutions import LaunchConfiguration, PathJoinSubstitution
 from launch_ros.actions import Node
 from launch_ros.parameter_descriptions import ParameterValue
 from launch_ros.substitutions import FindPackageShare
@@ -14,7 +14,6 @@ def generate_launch_description():
     """
 
     # Declare launch arguments
-    log_level_arg = DeclareLaunchArgument('log_level', default_value='info')
     robot_name_arg = DeclareLaunchArgument(
         'robot_name',
         default_value='charon',
@@ -69,11 +68,6 @@ def generate_launch_description():
         description='Seconds without RSSI before Rajant is considered stale'
     )
 
-    log_level_arg = DeclareLaunchArgument(
-        'log_level', default_value=EnvironmentVariable('COMMON_LOG_LEVEL', default_value='info'),
-        description='ROS log level for common services'
-    )
-
     respawn_arg = DeclareLaunchArgument(
         'respawn', default_value='false',
         description='Restart nodes after they exit while launch is running'
@@ -84,7 +78,6 @@ def generate_launch_description():
     )
 
     return LaunchDescription([
-        log_level_arg,
         respawn_arg,
         respawn_delay_arg,
         sigterm_timeout_arg,
@@ -101,9 +94,6 @@ def generate_launch_description():
 
 
 def launch_setup(context, *args, **kwargs):
-    respawn = LaunchConfiguration('respawn')
-    # Jazzy requires a numeric respawn_delay; resolve it at launch execution.
-    respawn_delay = float(LaunchConfiguration('respawn_delay').perform(context))
     robot_name = LaunchConfiguration('robot_name')
     robot_configs = LaunchConfiguration('robot_configs')
     topic_configs = LaunchConfiguration('topic_configs')
@@ -119,7 +109,6 @@ def launch_setup(context, *args, **kwargs):
         executable='mocha.py',
         name='mocha',
         output='screen',
-        arguments=['--ros-args', '--log-level', LaunchConfiguration('log_level')],
         parameters=[{
             'robot_name': robot_name,
             'robot_configs': robot_configs,
@@ -142,7 +131,6 @@ def launch_setup(context, *args, **kwargs):
         executable='translator.py',
         name='translator',
         output='screen',
-        arguments=['--ros-args', '--log-level', LaunchConfiguration('log_level')],
         parameters=[{
             'robot_name': robot_name,
             'robot_configs': robot_configs,
@@ -155,7 +143,6 @@ def launch_setup(context, *args, **kwargs):
         executable='topic_publisher.py',
         name='topic_publisher',
         output='screen',
-        arguments=['--ros-args', '--log-level', LaunchConfiguration('log_level')],
         parameters=[{
             'robot_name': robot_name,
             'robot_configs': robot_configs,
@@ -163,18 +150,4 @@ def launch_setup(context, *args, **kwargs):
         }]
     )
 
-    return LaunchDescription([
-        log_level_arg,
-        sigterm_timeout_arg,
-        robot_name_arg,
-        robot_configs_arg,
-        topic_configs_arg,
-        radio_configs_arg,
-        wifi_fallback_enabled_arg,
-        wifi_backup_always_on_arg,
-        wifi_backup_period_arg,
-        rajant_signal_timeout_arg,
-        mocha_node,
-        translator_node,
-        topic_publisher_node
-    ])
+    return [mocha_node, translator_node, topic_publisher_node]

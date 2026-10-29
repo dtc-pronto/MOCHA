@@ -10,7 +10,6 @@ from launch_ros.substitutions import FindPackageShare
 def generate_launch_description():
     """Launch titan robot with database, translators, publishers, and Rajant interface."""
     # Declare launch arguments
-    log_level_arg = DeclareLaunchArgument('log_level', default_value='info')
     robot_name_arg = DeclareLaunchArgument(
         'robot_name',
         default_value='titan',
@@ -95,7 +94,6 @@ def generate_launch_description():
             ])
         ]),
         launch_arguments={
-            'log_level': LaunchConfiguration('log_level'),
             'robot_name': robot_name,
             'robot_configs': robot_configs,
             'topic_configs': topic_configs,
@@ -117,7 +115,6 @@ def generate_launch_description():
             ])
         ]),
         launch_arguments={
-            'log_level': LaunchConfiguration('log_level'),
             'robot_name': robot_name,
             'robot_configs': robot_configs,
             'topic_configs': topic_configs,
@@ -127,7 +124,6 @@ def generate_launch_description():
     )
 
     return LaunchDescription([
-        log_level_arg,
         robot_name_arg,
         robot_configs_arg,
         topic_configs_arg,

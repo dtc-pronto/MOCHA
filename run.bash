@@ -4,7 +4,6 @@ docker run --rm -it \
     --network=host \
     --privileged \
     --hostname "${HOSTNAME}" \
-    -e LOG_LEVEL="${LOG_LEVEL:-info}" \
     -e MOCHA="${MOCHA:-true}" \
     -e WIFI_FALLBACK="${WIFI_FALLBACK:-true}" \
     -e WIFI_ALWAYS_ON="${WIFI_ALWAYS_ON:-false}" \

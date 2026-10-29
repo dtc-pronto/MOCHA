@@ -25,9 +25,7 @@ else
     echo "[MOCHA] Launching MOCHA for ${HOSTNAME}"
 fi
 
-# log level forced to info for now
 launch_args=(
-    "log_level:=info"
     "robot_name:=${HOSTNAME}"
     "robot_configs:=${ROBOT_CONFIGS}"
     "topic_configs:=${TOPIC_CONFIGS}"

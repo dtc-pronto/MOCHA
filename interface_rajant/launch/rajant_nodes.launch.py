@@ -3,16 +3,13 @@
 import os
 from launch import LaunchDescription
 from launch.actions import DeclareLaunchArgument, OpaqueFunction
-from launch.substitutions import EnvironmentVariable, LaunchConfiguration, PathJoinSubstitution
+from launch.substitutions import LaunchConfiguration, PathJoinSubstitution
 from launch_ros.actions import Node
 from launch_ros.substitutions import FindPackageShare
 
 
 def launch_setup(context, *args, **kwargs):
     from ament_index_python.packages import get_package_share_directory
-    respawn = LaunchConfiguration('respawn')
-    # Jazzy requires a numeric respawn_delay; resolve it at launch execution.
-    respawn_delay = float(LaunchConfiguration('respawn_delay').perform(context))
     robot_name = LaunchConfiguration('robot_name')
     robot_configs = LaunchConfiguration('robot_configs')
     radio_configs = LaunchConfiguration('radio_configs')
@@ -56,7 +53,6 @@ def launch_setup(context, *args, **kwargs):
             executable='rajant_peer_rssi.py',
             name='rajant_peer_rssi',
             output='screen',
-            arguments=['--ros-args', '--log-level', LaunchConfiguration('log_level')],
             parameters=[{
                 'robot_name': robot_name,
                 'robot_configs': robot_configs,
@@ -71,7 +67,6 @@ def launch_setup(context, *args, **kwargs):
             executable='rajant_query.py',
             name='rajant_query',
             output='screen',
-            arguments=['--ros-args', '--log-level', LaunchConfiguration('log_level')],
             parameters=[{
                 'robot_name': robot_name,
                 'robot_configs': robot_configs,
@@ -86,7 +81,6 @@ def launch_setup(context, *args, **kwargs):
             executable='rajant_parser.py',
             name='rajant_parser',
             output='screen',
-            arguments=['--ros-args', '--log-level', LaunchConfiguration('log_level')],
             parameters=[{
                 'robot_name': robot_name,
                 'robot_configs': robot_configs,
@@ -102,7 +96,6 @@ def launch_setup(context, *args, **kwargs):
 def generate_launch_description():
     """Launch Rajant interface nodes dynamically."""
     # Declare launch arguments
-    log_level_arg = DeclareLaunchArgument('log_level', default_value='info')
     robot_name_arg = DeclareLaunchArgument(
         'robot_name',
         default_value='charon',
@@ -142,11 +135,6 @@ def generate_launch_description():
         description='Minimum seconds between WiFi backup sync attempts per peer'
     )
 
-    log_level_arg = DeclareLaunchArgument(
-        'log_level', default_value=EnvironmentVariable('COMMON_LOG_LEVEL', default_value='info'),
-        description='ROS log level for common services'
-    )
-
     respawn_arg = DeclareLaunchArgument(
         'respawn', default_value='false',
         description='Restart nodes after they exit while launch is running'
@@ -157,7 +145,6 @@ def generate_launch_description():
     )
 
     return LaunchDescription([
-        log_level_arg,
         robot_name_arg,
         robot_configs_arg,
         radio_configs_arg,
