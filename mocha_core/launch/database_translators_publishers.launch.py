@@ -114,7 +114,7 @@ def launch_setup(context, *args, **kwargs):
             'robot_configs': robot_configs,
             'radio_configs': radio_configs,
             'topic_configs': topic_configs,
-            'rssi_threshold': 35,
+            'rssi_threshold': 20,
             'wifi_fallback_enabled': ParameterValue(
                 wifi_fallback_enabled, value_type=bool),
             'wifi_backup_always_on': ParameterValue(
