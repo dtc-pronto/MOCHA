@@ -25,6 +25,9 @@ import mocha_core.database_utils as du
 import mocha_core.synchronize_channel as sync
 from mocha_core.zmq_comm_node import Transport
 
+BASESTATION_NAME = "basestation"
+BASESTATION_SYNC_PERIOD = 15.0
+
 
 def ping(host):
     command = ["ping", "-c", "1", host]
@@ -194,6 +197,9 @@ class Mocha(Node):
             )
         if self.wifi_fallback_enabled or self.wifi_backup_always_on:
             self.create_timer(1.0, self.wifi_backup_timer_cb)
+        # Periodic basestation sync
+        self.create_timer(BASESTATION_SYNC_PERIOD,
+                          self.basestation_sync_timer_cb)
 
     def shutdown(self, reason):
         # Only trigger shutdown once
@@ -282,6 +288,17 @@ class Mocha(Node):
                 self.trigger_wifi_if_ready(channel, "always-on WiFi backup")
             elif self.wifi_fallback_enabled and (signal_stale or signal_low):
                 self.trigger_wifi_if_ready(channel, "Rajant signal stale or weak")
+
+    def is_basestation_link(self, target_robot):
+        return (self.this_robot == BASESTATION_NAME or
+                target_robot == BASESTATION_NAME)
+
+    def basestation_sync_timer_cb(self):
+        for target_robot, channel in self.channels_by_robot.items():
+            if not self.is_basestation_link(target_robot):
+                continue
+            self.trigger_channel(channel, Transport.RAJANT,
+                                 "periodic basestation sync")
 
 
 def main(args=None):
